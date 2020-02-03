@@ -74,71 +74,57 @@ class FirmwarePatcher():
         cry = XiaoTea()
         self.data = cry.encrypt(self.data)
 
+        #Patches reverse-engineered from the original Pro patcher
+
     def kers_min_speed(self, kmh):
         val = struct.pack('<H', int(kmh * 345))
-        sig = [0x25, 0x68, 0x40, 0xF6, 0x16, 0x07, 0xBD, 0x42]
+        sig = [0x26, 0x68, 0x40, 0xF6, 0x16, 0x0C, 0x66, 0x45]  
         ofs = FindPattern(self.data, sig) + 2
         pre, post = PatchImm(self.data, ofs, 4, val, MOVW_T3_IMM)
         return [(ofs, pre, post)]
 
-    def speed_params(self, normal_kmh, normal_phase, normal_battery, eco_kmh, eco_phase, eco_battery):
+    def speed_params(self, sport_kmh, sport_phase, sport_battery, normal_kmh, eco_kmh):
         ret = []
-        sig = [0x80, 0x28, 0x00, 0xDD, 0x80, 0x20, *[None]*2, 0x68, 0x43, 0x00, 0x0C]
-        ofs = FindPattern(self.data, sig) + 8
-        pre = self.data[ofs:ofs+4]
-        post = bytes(self.ks.asm('MOVW R2, #{:n}'.format(normal_battery))[0])
-        self.data[ofs:ofs+4] = post
-        ret.append([ofs, pre, post])
-        ofs += 4
-
-        pre = self.data[ofs:ofs+2]
-        post = bytes(self.ks.asm('B #0x2A')[0])
-        self.data[ofs:ofs+2] = post
-        ret.append([ofs, pre, post])
-        ofs += 2
-
-        sig = [0x01, 0x2A, 0x44, 0xF2, 0x68, 0x21, 0x42, 0x46, 0x05, 0xD0]
+        sig = [0x3C, 0x80, 0x4F, 0xF0, 0x1C, 0x0B, 0x4F, 0xF4]
         ofs = FindPattern(self.data, sig) + 2
-        pre, post = PatchImm(self.data, ofs, 4, struct.pack('<H', eco_phase), MOVW_T3_IMM)
-        ret.append([ofs, pre, post])
-        ofs += 4
-
-        ofs += 10
-        pre = self.data[ofs:ofs+2]
-        post = bytes(self.ks.asm('NOP')[0])
-        self.data[ofs:ofs+2] = post
-        ret.append([ofs, pre, post])
-        ofs += 2
-
-        ofs += 8
-        pre, post = PatchImm(self.data, ofs, 4, struct.pack('<H', eco_battery), MOVW_T3_IMM)
-        ret.append([ofs, pre, post])
-        ofs += 4
-
-        ofs += 2
-        pre = self.data[ofs:ofs+2]
-        post = bytes(self.ks.asm('B #0x06')[0])
-        self.data[ofs:ofs+2] = post
-        ret.append([ofs, pre, post])
-        ofs += 2
-
-        ofs += 6
-        pre, post = PatchImm(self.data, ofs, 2, struct.pack('<B', eco_kmh), MOVS_T1_IMM)
-        ret.append([ofs, pre, post])
-        ofs += 2
-
-        ofs += 6
-        pre, post = PatchImm(self.data, ofs, 2, struct.pack('<B', normal_kmh), MOVS_T1_IMM)
-        ret.append([ofs, pre, post])
-        ofs += 2
-
-        ofs += 2
         pre = self.data[ofs:ofs+4]
-        post = bytes(self.ks.asm('MOVW R1, #{:n}'.format(normal_phase))[0])
+        post = bytes(self.ks.asm('MOVW R11, #{:n}'.format(sport_kmh))[0])
         self.data[ofs:ofs+4] = post
         ret.append([ofs, pre, post])
 
+        sig = [0x4D, 0xF2, 0xD8, 0x61, 0x0D, 0xE0, 0x22, 0x21]
+        ofs = FindPattern(self.data, sig)
+        pre = self.data[ofs:ofs+4]
+        post = bytes(self.ks.asm('MOVW R1, #{:n}'.format(sport_phase))[0])
+        self.data[ofs:ofs+4] = post
+        ret.append([ofs, pre, post])
+
+        sig = [0x46, 0xF2, 0xA8, 0x11, 0x88, 0x42, 0x01, 0xD2]
+        ofs = FindPattern(self.data, sig)
+        pre = self.data[ofs:ofs+4]
+        post = bytes(self.ks.asm('MOVW R1, #{:n}'.format(sport_battery))[0])
+        self.data[ofs:ofs+4] = post
+        ret.append([ofs, pre, post])
+
+        sig = [0x64, 0xAF, 0x16, 0x21, 0xE1, 0x83, 0x4F, 0xF4, 0xFA, 0x41, 0x61, 0x84, 0x21, 0x65, 0xA4, 0xF8]
+        ofs = FindPattern(self.data, sig) + 2 
+        pre, post = PatchImm(self.data, ofs, 2, struct.pack('<H', normal_kmh), MOVS_T1_IMM)
+        ret.append([ofs, pre, post])
+
+        sig = [0x91, 0xD0, 0x11, 0x21, 0xE1, 0x83, 0x51, 0x46, 0x24, 0xE0]
+        ofs = FindPattern(self.data, sig) + 2 
+        pre, post = PatchImm(self.data, ofs, 2, struct.pack('<H', eco_kmh), MOVS_T1_IMM)
+        ret.append([ofs, pre, post])
         return ret
+
+    def current_raising_s(self, val):
+        val = struct.pack('<H', int(val))
+        sig = [0x03, 0x68, 0x4F, 0xF4, 0xFA, 0x72, 0x93, 0x42]
+        ofs = FindPattern(self.data, sig) + 2
+        pre = self.data[ofs:ofs+4]
+        post = bytes(self.ks.asm('MOVW R2, #{:n}'.format(val))[0])
+        self.data[ofs:ofs+4] = post
+        return [(ofs, pre, post)]
 
     # limit: 1 - 130, min: 0 - 65k, max: min - 65k
     def brake_params(self, limit, min, max):
@@ -150,7 +136,7 @@ class FirmwarePatcher():
         max = int(max)
         assert max >= min and max < 65536
 
-        sig = [0x73, 0x29, 0x00, 0xDD, 0x73, 0x21, 0x45, 0xF2, 0xF0, 0x53, 0x59, 0x43, 0x73, 0x23, 0x91, 0xFB, 0xF3, 0xF1, None, 0x6C, 0x51, 0x1A, 0xA1, 0xF5, 0xFA, 0x51]
+        sig = [0x00, 0xDD, 0x73, 0x21, 0x45, 0xF2, 0xF0, 0x53, 0x59, 0x43, 0x73, 0x23, 0x91, 0xFB, 0xF3, 0xF1]
         ofs = FindPattern(self.data, sig)
 
         pre = self.data[ofs:ofs+2]
@@ -170,14 +156,12 @@ class FirmwarePatcher():
         post = bytes(self.ks.asm('MOVW R3, #{:n}'.format(max - min))[0])
         self.data[ofs:ofs+4] = post
         ret.append((ofs, pre, post))
-        ofs += 4
 
         ofs += 2
         pre = self.data[ofs:ofs+2]
         post = bytes(self.ks.asm('MOVS R3, #{:n}'.format(limit))[0])
         self.data[ofs:ofs+2] = post
         ret.append((ofs, pre, post))
-        ofs += 2
 
         ofs += 8
         pre = self.data[ofs:ofs+4]
@@ -189,17 +173,46 @@ class FirmwarePatcher():
 
     def voltage_limit(self, volts):
         val = struct.pack('<H', int(volts * 100) - 2600)
-        sig = [0x40, 0xF2, 0xA5, 0x61, 0xA0, 0xF6, 0x28, 0x20, 0x88, 0x42]
+        sig = [0x4F, 0xF4, 0xFA, 0x68, 0x0E, 0xE0, 0x02, 0xF0, 0x04, 0xFA, 0x01, 0x20, 0x03, 0xF0]
         ofs = FindPattern(self.data, sig)
         pre, post = PatchImm(self.data, ofs, 4, val, MOVW_T3_IMM)
         return [(ofs, pre, post)]
 
     def motor_start_speed(self, kmh):
         val = struct.pack('<H', int(kmh * 345))
-        sig = [0xF0, 0xB4, None, 0x4C, 0x26, 0x68, 0x40, 0xF2, 0xBD, 0x67]
-        ofs = FindPattern(self.data, sig) + 6
+        sig = [0x40, 0xF2, 0xA5, 0x61, 0xA0, 0xF6, 0x28, 0x20, 0x88, 0x42]
+        ofs = FindPattern(self.data, sig)
         pre, post = PatchImm(self.data, ofs, 4, val, MOVW_T3_IMM)
         return [(ofs, pre, post)]
+
+    def batt_saving_voltage_threshold(self, volts):
+        ret = []
+        val = struct.pack('<H', int(volts))
+        sig = [0x40, 0xF6, 0x48, 0x52, 0x64, 0x21, 0x90, 0x42, 0x0D, 0xDA, 0xA0, 0xF6]
+        ofs = FindPattern(self.data, sig)
+        pre = self.data[ofs:ofs+4]
+        post = bytes(self.ks.asm('MOVW R2, #{:n}'.format(val))[0])
+        self.data[ofs:ofs+4] = post
+        ret.append((ofs, pre, post))
+
+        ofs += 10
+
+        pre = self.data[ofs:ofs+4]
+        post = bytes(self.ks.asm('SUBW R0, R0, #{:n}'.format(val))[0])
+        self.data[ofs:ofs+4] = post
+        ret.append((ofs, pre, post))
+
+        return ret
+
+    def remove_charging_mode(self):
+        sig = [0x20, 0xB1, 0x84, 0xF8, 0x3A, 0x60, 0xE0, 0x7B, 0x18, 0xB1, 0x07, 0xE0, 0xFA, 0xF7]
+        ofs = FindPattern(self.data, sig)
+        pre = self.data[ofs:ofs+2]
+        post = bytes(self.ks.asm('NOP')[0])
+        self.data[ofs:ofs+2] = post
+        return [(ofs, pre, post)]
+
+    #Untested for Pro, original M365 BotoX patches
 
     # lower value = more power
     # original = 51575 (~500 Watt)
@@ -310,13 +323,6 @@ class FirmwarePatcher():
         self.data[ofs:ofs+10] = post
         return [(ofs, pre, post)]
 
-    def remove_charging_mode(self):
-        sig = [0x19, 0xE0, None, 0xF8, 0x12, 0x00, 0x20, 0xB1, 0x84, 0xF8, 0x3A, 0x50, 0xE0, 0x7B, 0x18, 0xB1, 0x07, 0xE0]
-        ofs = FindPattern(self.data, sig) + 6
-        pre = self.data[ofs:ofs+2]
-        post = bytes(self.ks.asm('NOP')[0])
-        self.data[ofs:ofs+2] = post
-        return [(ofs, pre, post)]
 
     def stay_on_locked(self):
         sig = [None, 0x49, 0x40, 0x1C, *[None]*2, 0x88, 0x42, 0x03, 0xDB, *[None]*2, 0x08, 0xB9]
