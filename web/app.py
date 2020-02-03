@@ -31,41 +31,34 @@ def dated_url_for(endpoint, **values):
             values['q'] = int(os.stat(file_path).st_mtime)
     return flask.url_for(endpoint, **values)
 
-
-@app.route('/')
-def home():
-    return flask.render_template('home.html')
-
 @app.route('/cfw')
 def patch_firmware():
     version = flask.request.args.get('version', None)
-    if version not in ['DRV130', 'DRV134', 'DRV138', 'DRV140', 'DRV141', 'DRV142', 'DRV143']:
+    if version not in ['DRV152', 'DRV155', 'DRV160']:
         return 'Invalid firmware version.', 400
 
-    with open('../bins/{}.bin'.format(version), 'rb') as fp:
+    with open('bins/{}.bin'.format(version), 'rb') as fp:
         patcher = FirmwarePatcher(fp.read())
 
     kers_min_speed = flask.request.args.get('kers_min_speed', None)
     if kers_min_speed is not None:
         kers_min_speed = float(kers_min_speed)
-        assert kers_min_speed >= 0 and kers_min_speed <= 100
+        assert kers_min_speed >= 0 and kers_min_speed <= 65
         patcher.kers_min_speed(kers_min_speed)
 
     speed_params = flask.request.args.get('speed_params', None)
     if speed_params:
-        speed_normal_kmh = int(flask.request.args.get('speed_normal_kmh', None))
-        assert speed_normal_kmh >= 0 and speed_normal_kmh <= 100
-        speed_normal_phase = int(flask.request.args.get('speed_normal_phase', None))
+        speed_normal_kmh = int(flask.request.args.get('speed_sport_kmh', None))
+        assert speed_normal_kmh >= 0 and speed_normal_kmh <= 65
+        speed_normal_phase = int(flask.request.args.get('speed_sport_phase', None))
         assert speed_normal_phase >= 0 and speed_normal_phase <= 65535
-        speed_normal_battery = int(flask.request.args.get('speed_normal_battery', None))
+        speed_normal_battery = int(flask.request.args.get('speed_sport_battery', None))
         assert speed_normal_battery >= 0 and speed_normal_battery <= 65535
         speed_eco_kmh = int(flask.request.args.get('speed_eco_kmh', None))
-        assert speed_eco_kmh >= 0 and speed_eco_kmh <= 100
-        speed_eco_phase = int(flask.request.args.get('speed_eco_phase', None))
-        assert speed_eco_phase >= 0 and speed_eco_phase <= 65535
-        speed_eco_battery = int(flask.request.args.get('speed_eco_battery', None))
-        assert speed_eco_battery >= 0 and speed_eco_battery <= 65535
-        patcher.speed_params(speed_normal_kmh, speed_normal_phase, speed_normal_battery, speed_eco_kmh, speed_eco_phase, speed_eco_battery)
+        assert speed_eco_kmh >= 0 and speed_eco_kmh <= 65
+        speed_normal_kmh = int(flask.request.args.get('speed_normal_kmh', None))
+        assert speed_normal_kmh >= 0 and speed_normal_kmh <= 65
+        patcher.speed_params(speed_sport_kmh, speed_sport_phase, speed_sport_battery, speed_normal_kmh, speed_eco_kmh)
 
     brake_params = flask.request.args.get('brake_params', None)
     if brake_params:
@@ -106,6 +99,12 @@ def patch_firmware():
         voltage_limit = float(voltage_limit)
         assert voltage_limit >= 43.01 and voltage_limit <= 100.00
         patcher.voltage_limit(voltage_limit)
+
+    batt_saving_voltage_threshold = flask.request.args.get('batt_saving_voltage_threshold', None)
+    if batt_saving_voltage_threshold is not None:
+        batt_saving_voltage_threshold = float(batt_saving_voltage_threshold)
+        assert batt_saving_voltage_threshold >= 43.01 and batt_saving_voltage_threshold <= 100.00
+        patcher.batt_saving_voltage_threshold(batt_saving_voltage_threshold)
 
     russian_throttle = flask.request.args.get('russian_throttle', None)
     if russian_throttle:
