@@ -102,8 +102,8 @@ def patch_firmware():
 
     batt_saving_voltage_threshold = flask.request.args.get('batt_saving_voltage_threshold', None)
     if batt_saving_voltage_threshold is not None:
-        batt_saving_voltage_threshold = float(batt_saving_voltage_threshold)
-        assert batt_saving_voltage_threshold >= 43.01 and batt_saving_voltage_threshold <= 100.00
+        batt_saving_voltage_threshold = int(batt_saving_voltage_threshold)
+        assert batt_saving_voltage_threshold >= 30 and batt_saving_voltage_threshold <= 38
         patcher.batt_saving_voltage_threshold(batt_saving_voltage_threshold)
 
     russian_throttle = flask.request.args.get('russian_throttle', None)

@@ -118,7 +118,6 @@ class FirmwarePatcher():
         return ret
 
     def current_raising_s(self, val):
-        val = struct.pack('<H', int(val))
         sig = [0x03, 0x68, 0x4F, 0xF4, 0xFA, 0x72, 0x93, 0x42]
         ofs = FindPattern(self.data, sig) + 2
         pre = self.data[ofs:ofs+4]
@@ -185,9 +184,8 @@ class FirmwarePatcher():
         pre, post = PatchImm(self.data, ofs, 4, val, MOVW_T3_IMM)
         return [(ofs, pre, post)]
 
-    def batt_saving_voltage_threshold(self, volts):
+    def batt_saving_voltage_threshold(self, val):
         ret = []
-        val = struct.pack('<H', int(volts))
         sig = [0x40, 0xF6, 0x48, 0x52, 0x64, 0x21, 0x90, 0x42, 0x0D, 0xDA, 0xA0, 0xF6]
         ofs = FindPattern(self.data, sig)
         pre = self.data[ofs:ofs+4]
