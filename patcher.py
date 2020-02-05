@@ -107,14 +107,17 @@ class FirmwarePatcher():
         ret.append([ofs, pre, post])
 
         sig = [0x64, 0xAF, 0x16, 0x21, 0xE1, 0x83, 0x4F, 0xF4, 0xFA, 0x41, 0x61, 0x84, 0x21, 0x65, 0xA4, 0xF8]
-        ofs = FindPattern(self.data, sig) + 2 
-        pre, post = PatchImm(self.data, ofs, 2, struct.pack('<H', normal_kmh), MOVS_T1_IMM)
+        ofs = FindPattern(self.data, sig) + 2
+        pre = self.data[ofs:ofs+4]
+        post = bytes(self.ks.asm('MOVS R1, #{:n}'.format(normal_kmh))[0])
+        self.data[ofs:ofs+4] = post
         ret.append([ofs, pre, post])
 
         sig = [0x91, 0xD0, 0x11, 0x21, 0xE1, 0x83, 0x51, 0x46, 0x24, 0xE0]
-        ofs = FindPattern(self.data, sig) + 2 
-        pre, post = PatchImm(self.data, ofs, 2, struct.pack('<H', eco_kmh), MOVS_T1_IMM)
-        ret.append([ofs, pre, post])
+        ofs = FindPattern(self.data, sig) + 2
+        pre = self.data[ofs:ofs+4]
+        post = bytes(self.ks.asm('MOVS R1, #{:n}'.format(eco_kmh))[0])
+        self.data[ofs:ofs+4] = post
         return ret
 
     def current_raising_s(self, val):
@@ -135,7 +138,7 @@ class FirmwarePatcher():
         max = int(max)
         assert max >= min and max < 65536
 
-        sig = [0x00, 0xDD, 0x73, 0x21, 0x45, 0xF2, 0xF0, 0x53, 0x59, 0x43, 0x73, 0x23, 0x91, 0xFB, 0xF3, 0xF1]
+        sig = [0x73, 0x29, 0x00, 0xDD, 0x73, 0x21, 0x45, 0xF2, 0xF0, 0x53, 0x59, 0x43, 0x73, 0x23, 0x91, 0xFB, 0xF3, 0xF1]
         ofs = FindPattern(self.data, sig)
 
         pre = self.data[ofs:ofs+2]
@@ -155,6 +158,7 @@ class FirmwarePatcher():
         post = bytes(self.ks.asm('MOVW R3, #{:n}'.format(max - min))[0])
         self.data[ofs:ofs+4] = post
         ret.append((ofs, pre, post))
+        ofs += 4
 
         ofs += 2
         pre = self.data[ofs:ofs+2]
