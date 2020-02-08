@@ -165,6 +165,7 @@ class FirmwarePatcher():
         post = bytes(self.ks.asm('MOVS R3, #{:n}'.format(limit))[0])
         self.data[ofs:ofs+2] = post
         ret.append((ofs, pre, post))
+        ofs += 2
 
         ofs += 8
         pre = self.data[ofs:ofs+4]
@@ -175,10 +176,12 @@ class FirmwarePatcher():
         return ret
 
     def voltage_limit(self, volts):
-        val = struct.pack('<H', int(volts * 100) - 2600)
+        val = int(volts * 100) - 2600
         sig = [0x4F, 0xF4, 0xFA, 0x68, 0x0E, 0xE0, 0x02, 0xF0, 0x04, 0xFA, 0x01, 0x20, 0x03, 0xF0]
         ofs = FindPattern(self.data, sig)
-        pre, post = PatchImm(self.data, ofs, 4, val, MOVW_T3_IMM)
+        pre = self.data[ofs:ofs+2]
+        post = bytes(self.ks.asm('MOVW R8, #{:n}'.format(val))[0])
+        self.data[ofs:ofs+2] = post
         return [(ofs, pre, post)]
 
     def motor_start_speed(self, kmh):
@@ -212,6 +215,14 @@ class FirmwarePatcher():
         pre = self.data[ofs:ofs+2]
         post = bytes(self.ks.asm('NOP')[0])
         self.data[ofs:ofs+2] = post
+        return [(ofs, pre, post)]
+        
+
+    def alt_throttle_alg(self):
+        sig = [0xF0, 0xB5, 0x25, 0x4B, 0x25, 0x4A, 0x00, 0x21]
+        ofs = FindPattern(self.data, sig) + 6
+        pre, post = self.data[ofs:ofs + 1], bytearray((0x01, 0x21))
+        self.data[ofs:ofs + 2] = post
         return [(ofs, pre, post)]
 
     #Untested for Pro, original M365 BotoX patches
