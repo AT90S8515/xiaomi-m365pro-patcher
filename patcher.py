@@ -176,7 +176,7 @@ class FirmwarePatcher():
         return ret
 
     def voltage_limit(self, volts):
-        val = int(volts * 100) - 2600
+        val = int((volts * 100) - 2600)
         sig = [0x4F, 0xF4, 0xFA, 0x68, 0x0E, 0xE0, 0x02, 0xF0, 0x04, 0xFA, 0x01, 0x20, 0x03, 0xF0]
         ofs = FindPattern(self.data, sig)
         pre = self.data[ofs:ofs+2]
