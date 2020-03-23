@@ -134,6 +134,7 @@ def patch_firmware():
 
     version_spoofing = flask.request.args.get('version_spoofing', None)
     if version_spoofing:
+        patcher.version_spoofing()
 
     # make zip file for firmware
     zip_buffer = io.BytesIO()
