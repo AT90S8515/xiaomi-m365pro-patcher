@@ -83,6 +83,13 @@ class FirmwarePatcher():
         pre, post = PatchImm(self.data, ofs, 4, val, MOVW_T3_IMM)
         return [(ofs, pre, post)]
 
+    def version_spoofing(self):
+        val = b'\x50'
+        sig = [0x74, 0x01, 0x40, 0xF2, None, 0x10]
+        ofs = FindPattern(self.data, sig) + 5
+        pre, post = PatchImm(self.data, ofs, 2, val, MOVS_T1_IMM)
+        return [(ofs, pre, post)]
+
     def speed_params(self, sport_kmh, sport_phase, sport_battery, normal_kmh, eco_kmh):
         ret = []
         sig = [0x3C, 0x80, 0x4F, 0xF0, 0x1C, 0x0B, 0x4F, 0xF4]
@@ -176,7 +183,7 @@ class FirmwarePatcher():
         return ret
 
     def voltage_limit(self, volts):
-        val = (int(volts) * 100) - 2600
+        val = int((volts * 100) - 2600)
         sig = [0x4F, 0xF4, 0xFA, 0x68, 0x0E, 0xE0, 0x02, 0xF0, 0x04, 0xFA, 0x01, 0x20, 0x03, 0xF0]
         ofs = FindPattern(self.data, sig)
         pre = self.data[ofs:ofs+2]
@@ -185,10 +192,12 @@ class FirmwarePatcher():
         return [(ofs, pre, post)]
 
     def motor_start_speed(self, kmh):
-        val = struct.pack('<H', int(kmh * 345))
-        sig = [0x40, 0xF2, 0xA5, 0x61, 0xA0, 0xF6, 0x28, 0x20, 0x88, 0x42]
+        val = int(kmh * 345)
+        sig = [0x40, 0xF2, 0xBD, 0x67, 0x22, 0x4B, 0x01, 0x25, 0x22, 0x48, 0x00, 0x21]
         ofs = FindPattern(self.data, sig)
-        pre, post = PatchImm(self.data, ofs, 4, val, MOVW_T3_IMM)
+        pre = self.data[ofs:ofs+4]
+        post = bytes(self.ks.asm('MOVW R7, #{:n}'.format(val))[0])
+        self.data[ofs:ofs+4] = post
         return [(ofs, pre, post)]
 
     def batt_saving_voltage_threshold(self, val):
@@ -225,7 +234,7 @@ class FirmwarePatcher():
         self.data[ofs:ofs + 2] = post
         return [(ofs, pre, post)]
 
-    #Untested for Pro, original M365 BotoX patches
+    #Tested for Pro, original M365 BotoX patches
 
     # lower value = more power
     # original = 51575 (~500 Watt)

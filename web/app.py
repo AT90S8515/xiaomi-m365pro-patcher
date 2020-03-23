@@ -132,6 +132,9 @@ def patch_firmware():
         assert wheel_speed_const >= 200 and wheel_speed_const <= 500
         patcher.wheel_speed_const(wheel_speed_const)
 
+    version_spoofing = flask.request.args.get('version_spoofing', None)
+    if version_spoofing:
+
     # make zip file for firmware
     zip_buffer = io.BytesIO()
     zip_file = zipfile.ZipFile(zip_buffer, 'a', zipfile.ZIP_DEFLATED, False)
